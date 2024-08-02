@@ -1,0 +1,16 @@
+{
+  "id":"acode.plugin.workspace",
+  "name":"Workspace Manager",
+  "main":"dist/main.js",
+  "version":"1.0.2",
+  "readme":"readme.md",
+  "icon":"icon.png",
+  "files":[],
+  "minVersionCode":290,
+  "price":0,
+  "author":{
+    "name":"ReywiroAd27",
+    "email":"aditya27master@gmail.com",
+    "github":"http://github.com/ReywiroAd27/acode-webdav-interface"
+  }
+}

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>test</title>
+  </head>
+  <body>
+    <script type="text/javascript" charset="utf-8">
+      function protocol(method, url, user, password, d, data) {
+    const xhr = new XMLHttpRequest();
+    
+    // Menyusun fungsi untuk menangani perubahan status
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          parser = new DOMParser();
+          xmlDoc = parser.parseFromString(xhr.responseText,"text/xml");
+
+            console.log("Status:", this.status);
+            console.log("Ready State:", this.readyState);
+            console.log("Response Text:", xhr.responseXML);
+            console.log("Request Method:", method);
+        }
+    };
+
+    // Menangani kesalahan jaringan
+    xhr.onerror = function(e) {
+        console.log("Request Error",xhr.statusText);
+    };
+
+    // Menangani permintaan yang sedang berlangsung
+    xhr.onloadstart = function() {
+        console.log("Request Started");
+    };
+
+    // Menangani permintaan yang selesai tetapi tidak berhasil
+    xhr.onloadend = function() {
+        console.log("Request Ended");
+    };
+
+    // Memeriksa apakah metode yang diberikan valid dan membuka permintaan
+    if (!["GET", "POST", "PROPFIND", "PUT", "DELETE", "MKCOL", "OPTIONS", "PROPPATCH","MOVE","COPY","LOCK","UNLOCK"].includes(method.toUpperCase())) {
+        console.error("Invalid HTTP method:", method);
+        return;
+    }
+
+    xhr.open(method, url, true);
+    xhr.setRequestHeader('Authorization', "Basic " + btoa(user + ":" + password));
+    xhr.setRequestHeader('Depth', '1')
+    //xhr.setRequestHeader("depth", d)
+    
+    // Pastikan header tambahan hanya ditambahkan jika diperlukan
+    // xhr.setRequestHeader("depth", 0);
+
+    // Mengirimkan permintaan
+    xhr.send();
+}
+
+// Contoh penggunaan
+protocol("PROPFIND", "http://localhost:1900/", "admin", "password",'<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:"><d:prop><d:displayname/></d:prop></d:propfind>');
+
+    </script>
+    <!-- <script charset="utf-8">
+    function getWebDAVFiles(url) {
+  // Buat objek XMLHttpRequest
+  const xhr = new XMLHttpRequest();
+
+  // Konfigurasi permintaan
+  xhr.open('PROPFIND', url, true);
+  xhr.setRequestHeader('Depth', '1'); // Mendapatkan informasi hingga level folder pertama
+  xhr.setRequestHeader('authorization','Basic '+btoa("admin:password"))
+  xhr.setRequestHeader('Content-Type', 'application/xml');
+
+  // Buat body request
+  const xml = '<?xml version="1.0" encoding="utf-8"?><d:propfind xmlns:d="DAV:"><d:prop><d:displayname/></d:prop></d:propfind>';
+  xhr.send(xml);
+
+  xhr.onload = function() {
+    if (xhr.status === 207) {
+      // Parsing respon XML
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xhr.responseText, 'text/xml');
+
+      // Ekstrak informasi file dan folder dari XML
+      const responseBody = xmlDoc.documentElement;
+      const responseProps = responseBody.getElementsByTagNameNS('DAV:', 'response');
+
+      // Lakukan sesuatu dengan data yang didapatkan (misalnya, tampilkan dalam HTML)
+      for (let i = 0; i < responseProps.length; i++) {
+        const propstat = responseProps[i].getElementsByTagNameNS('DAV:', 'propstat')[0];
+        const prop = propstat.getElementsByTagNameNS('DAV:', 'prop')[0];
+        const displayName = prop.getElementsByTagNameNS('DAV:', 'displayname')[0];
+
+        console.log(displayName.textContent);
+      }
+    } else {
+      console.error('Terjadi kesalahan:', xhr.statusText);
+    }
+  };
+  xhr.onerror = console.log
+}
+
+// Ganti dengan URL server WebDAV Anda
+const webDAVUrl = 'http://localhost:1900/';
+
+getWebDAVFiles(webDAVUrl);
+      // Fungsi untuk mengirimkan permintaan XHR
+function sendRequest(method, url, callback, data = null, headers = {}) {
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, url, true);
+
+    // Mengatur header jika ada
+    for (let key in headers) {
+        if (headers.hasOwnProperty(key)) {
+            xhr.setRequestHeader(key, headers[key]);
+        }
+    }
+
+    // Menangani respons dari server
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+            callback(xhr.status, xhr.responseText, xhr);
+        }
+    };
+
+    xhr.send(data);
+}
+
+// Fungsi untuk membuat folder (MKCOL)
+function createFolder(url, callback) {
+    sendRequest('MKCOL', url, callback);
+}
+
+// Fungsi untuk menghapus file atau folder (DELETE)
+function deleteResource(url, callback) {
+    sendRequest('DELETE', url, callback);
+}
+
+// Fungsi untuk mengambil daftar isi folder (PROPFIND)
+function listFolderContents(url, callback) {
+    const headers = {
+        'Depth': '1',
+        'authorization': 'Basic '+btoa("admin:password")
+    };
+    sendRequest('PROPFIND', url, callback, null, headers);
+}
+
+// Fungsi untuk mengunggah file (PUT)
+function uploadFile(url, file, callback) {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        sendRequest('PUT', url, callback, event.target.result);
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// Fungsi untuk mengunduh file (GET)
+function downloadFile(url, callback) {
+    sendRequest('GET', url, function(status, response, xhr) {
+        if (status === 200) {
+            const blob = new Blob([xhr.response], { type: 'application/octet-stream' });
+            callback(blob);
+        } else {
+            callback(null);
+        }
+    });
+}
+
+// Contoh penggunaan
+const webdavUrl = 'http://localhost:1900/';
+
+createFolder(webdavUrl + 'new-folder', function(status, response) {
+    console.log('Create Folder Status:', status);
+});
+
+listFolderContents(webdavUrl, function(status, response) {
+    console.log('List Folder Contents Status:', status);
+    console.log('Response:', response);
+});
+
+deleteResource(webdavUrl + 'old-folder', function(status, response) {
+    console.log('Delete Resource Status:', status);
+});
+
+const fileInput = document.getElementById('fileInput');
+fileInput.addEventListener('change', function() {
+    const file = fileInput.files[0];
+    uploadFile(webdavUrl + 'upload/' + file.name, file, function(status, response) {
+        console.log('Upload File Status:', status);
+    });
+});
+
+downloadFile(webdavUrl + 'download/example.txt', function(blob) {
+    if (blob) {
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = 'example.txt';
+        link.click();
+    } else {
+        console.log('Download failed.');
+    }
+});
+    </script> -->
+  </body>
+</html>
